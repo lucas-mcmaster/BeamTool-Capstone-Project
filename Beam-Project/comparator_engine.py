@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import ast
 from analysis_engine import BeamAnalysis
 
@@ -24,18 +25,35 @@ class ComparatorEngine:
         """
         user_reqs: Dict containing mandatory and optional inputs.
         MANDATORY: 'length', 'loads', 'supports', 'environment'
-        OPTIONAL: 'desired_material', 'max_cost', 'desired_depth', 'max_weight'
+        OPTIONAL: 'desired_material', 'max_cost', 'desired_depth', 'max_weight', 'design_priority'
         """
         
         candidates = []
+        rejected_beams = []
         
         # --- STEP 1: HARD FILTERING & ANALYSIS ---
         for index, beam in self.beam_library.iterrows():
             
+            beam_name = beam.get('Designation', 'Unknown')
+
             # 1. Environment Filter
             # Check if user's environment is in the beam's suitable list
             if user_reqs['environment'] not in beam['env_suitability']:
+                rejected_beams.append({
+                    "designation": beam_name,
+                    "reason": f"Environment mismatch. User requires '{user_reqs['environment']}'."
+                    
+                })
                 continue 
+            
+            # 2. Slender Beam (Euler-Bernoulli) Check (L/d >= 10)
+            span_to_depth_ratio = user_reqs['length'] / beam['Depth']
+            if span_to_depth_ratio < 10:
+                rejected_beams.append({
+                    "designation": beam_name,
+                    "reason": f"Failed slender beam check. Span-to-depth ratio is {span_to_depth_ratio:.1f} (must be >= 10)."
+                })
+                continue
 
             # 2. Run Analysis Engine
             # Note: We pass E and I_xx from the CSV row
@@ -54,17 +72,46 @@ class ComparatorEngine:
                 
             res = analyzer.analyze()
             
-            if "error" in res: continue # Skip unstable
+            if "error" in res: # Skip unstable
+                rejected_beams.append({
+                    "designation": beam_name,
+                    "reason": "Unstable structure configuration."
+                })
+                continue
             
             # 3. Safety Factor Check
-            # Sigma = M*y/I. Assuming symmetric beam, y = Depth/2
+            #Von mises stress analysis
+        
+            #For calculating bending stress Sigma = M*y/I. Assuming symmetric beam, y = Depth/2
             y_extreme = beam['Depth'] / 2
             max_stress = (res['max_moment'] * y_extreme) / beam['I_xx']
+            vm_bending = max_stress #for comparing to shear vm
+
+            #calculating shear stress using a shape factor and area of beam since we do not always have width of section or moment of area
+            max_shear= (res['max_shear']/beam['Area'])*1.5 #using a shape factor of 1.5 as it covers almost all beams
+            vm_shear = np.sqrt(3)*max_shear
+
+            vm_max = max(vm_bending, vm_shear)
             
             # Avoid divide by zero
-            safety_factor = (beam['Yield_Stress'] / max_stress) if max_stress > 0.000001 else 100.0
+            safety_factor = (beam['Yield_Stress'] / vm_max) if vm_max > 0.000001 else 100.0
             
-            if safety_factor < 1.5: # Hard Constraint: Safety must be >= 1.5
+            user_safety_factor= user_reqs.get('min_safety_factor', 1.0) #user selected SF. Forced to 1 if not given
+
+            if safety_factor < user_safety_factor: # Hard Constraint: Safety must be greater than user selection
+                if safety_factor < 1:
+                    rejected_beams.append({
+                        "designation": beam_name,
+                        "reason": f"MANDATORY FAILURE: Beam would physically yield. Ssafety Factor = {safety_factor:.2f} (Minimum required 1.0).",
+                        "type": "structural_failure"
+                    })
+                else:
+                    rejected_beams.append({
+                        "designation": beam_name,
+                        "reason": f"USER CONSTRAINT: Beam is safe but below user's custom margin. Safety Factor = {safety_factor:.2f} (User requested >= {user_safety_factor}).",
+                        "type": "user_constraint",
+                        "total_cost": beam['Cost_Per_m'] * user_reqs['length'] #AI can use this for cost-benefit discussion
+                    })
                 continue 
                 
             # Calculate Derived Metrics
@@ -110,16 +157,17 @@ class ComparatorEngine:
         }
 
         # --- DYNAMIC ADJUSTMENT ---
+        #Starting with selected user priority
+        user_priority = user_reqs.get('design_priority')
+        if user_priority in ['cost', 'weight', 'safety']:
+            weights[user_priority] += 0.50  # Significant boost to the primary goal
         
         # Case A: User specifies 'desired_material'
         if 'desired_material' in user_reqs and user_reqs['desired_material']:
             df['score_mat'] = df['material'].apply(
                 lambda x: 1.0 if str(x).lower() == user_reqs['desired_material'].lower() else 0.0
             )
-            weights['material'] = 0.50
-            weights['cost'] = 0.20
-            weights['weight'] = 0.15
-            weights['safety'] = 0.15
+            weights['material'] += 0.40  #adds importance to material type 
         else:
             df['score_mat'] = 0.0
 
@@ -129,10 +177,8 @@ class ComparatorEngine:
             over_budget_mask = df['total_cost'] > user_reqs['max_cost']
             df.loc[over_budget_mask, 'n_cost'] -= 0.5 
             
-            # Boost cost importance
+            # Boost cost importance since budget also exists
             weights['cost'] += 0.20 
-            total = sum(weights.values())
-            for k in weights: weights[k] /= total
 
         # Case C: User specifies 'desired_depth'
         if 'desired_depth' in user_reqs and user_reqs['desired_depth']:
@@ -140,13 +186,16 @@ class ComparatorEngine:
             max_diff = max(df['depth'].max() - target, target)
             df['score_depth'] = 1 - (abs(df['depth'] - target) / max_diff) if max_diff > 0 else 1.0
             
-            weights['depth'] = 0.25
-            total = sum(weights.values())
-            for k in weights: weights[k] /= total
+            weights['depth'] += 0.3 #making depth have some value
         else:
             df['score_depth'] = 0.0
 
-        # Calculate Final Score
+        #normalizing weightings
+        total_weight_points = sum(weights.values())
+        for k in weights:
+            weights[k] /= total_weight_points
+
+        #Calculate Final Score
         df['final_score'] = (
             (df['n_cost'] * weights['cost']) +
             (df['n_weight'] * weights['weight']) +
@@ -160,6 +209,20 @@ class ComparatorEngine:
         best_match = df_sorted.iloc[0]
         matches = df_sorted.head(3)
 
+        #identifying high value tradeoffs where safety factor choice impacts best beam
+        high_value_tradeoffs = []
+        recommended_cost = best_match['total_cost']
+
+        for rej in rejected_beams:
+            # Only look at beams rejected for USER constraints, not structural failure
+            if rej.get('type') == "user_constraint":
+                # Check if this rejected beam is significantly cheaper (e.g., > 15% savings)
+                if rej['total_cost'] < (recommended_cost * 0.85):
+                    savings = recommended_cost - rej['total_cost']
+                    rej['is_high_value'] = True
+                    rej['potential_savings'] = savings
+                    high_value_tradeoffs.append(rej)
+
         return {
             "recommended": best_match['original_data'],
             "score": best_match['final_score'],
@@ -168,5 +231,7 @@ class ComparatorEngine:
                 "max_deflection": best_match['max_deflection'],
                 "safety_factor": best_match['safety_factor'],
                 "total_cost": best_match['total_cost']
-            }
+            },
+            "rejected_beams" : rejected_beams, #returns the dict of rejected beams for tracking by AI
+            "tradeoffs": high_value_tradeoffs  #New field for the AI to prioritize
         }
