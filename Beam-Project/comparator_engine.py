@@ -46,7 +46,7 @@ class ComparatorEngine:
                 })
                 continue 
             
-            # 2. Slender Beam (Euler-Bernoulli) Check (L/d >= 10)
+            # 2.a. Slender Beam (Euler-Bernoulli) Check (L/d >= 10)
             span_to_depth_ratio = user_reqs['length'] / beam['Depth']
             if span_to_depth_ratio < 10:
                 rejected_beams.append({
@@ -79,7 +79,20 @@ class ComparatorEngine:
                 })
                 continue
             
-            # 3. Safety Factor Check
+            #3. Deflection check to ensure following slender beam theory - using L/240 or L/360 as requirement-stipulated by Canada building code CSAS16 for steel 
+            allowable_deflection = user_reqs['length'] / 240
+            actual_max_deflection = abs(res['max_deflection'])
+
+            if actual_max_deflection > allowable_deflection:
+                rejected_beams.append({
+                    "designation": beam_name,
+                    "reason": f"SERVICEABILITY FAILURE: Max deflection is {actual_max_deflection*1000:.2f}mm, "
+                              f"exceeding the limit of {allowable_deflection*1000:.2f}mm (L/240).",
+                    "type": "deflection_failure"
+                })
+                continue
+
+            # 4. Safety Factor Check
             #Von mises stress analysis
         
             #For calculating bending stress Sigma = M*y/I. Assuming symmetric beam, y = Depth/2
@@ -149,11 +162,12 @@ class ComparatorEngine:
 
         # Define Base Weights
         weights = {
-            'cost': 0.40,
-            'weight': 0.30,
-            'safety': 0.30,
+            'cost': 0.50,
+            'weight': 0.40,
+            'safety': 0.10,
             'material': 0.0,
-            'depth': 0.0
+            'depth': 0.0,
+            'section':0.0
         }
 
         # --- DYNAMIC ADJUSTMENT ---
@@ -171,7 +185,17 @@ class ComparatorEngine:
         else:
             df['score_mat'] = 0.0
 
-        # Case B: User specifies 'max_cost'
+        #Case B: User specifies a 'desired_section'
+        if user_reqs.get('desired_section'):
+            # Checks the 'type' column from CSV
+            df['score_section'] = df['type'].apply(
+                lambda x: 1.0 if str(x).lower() == user_reqs['desired_section'].lower() else 0.0
+            )
+            weights['section'] += 0.35  # Add importance to cross-section match
+        else:
+            df['score_section'] = 0.0
+
+        # Case C: User specifies 'max_cost'
         if 'max_cost' in user_reqs and user_reqs['max_cost']:
             # Soft penalty: If over budget, cut score significantly
             over_budget_mask = df['total_cost'] > user_reqs['max_cost']
@@ -180,7 +204,7 @@ class ComparatorEngine:
             # Boost cost importance since budget also exists
             weights['cost'] += 0.20 
 
-        # Case C: User specifies 'desired_depth'
+        # Case D: User specifies 'desired_depth'
         if 'desired_depth' in user_reqs and user_reqs['desired_depth']:
             target = user_reqs['desired_depth']
             max_diff = max(df['depth'].max() - target, target)
@@ -201,13 +225,27 @@ class ComparatorEngine:
             (df['n_weight'] * weights['weight']) +
             (df['n_safety'] * weights['safety']) +
             (df['score_mat'] * weights['material']) +
-            (df['score_depth'] * weights['depth'])
+            (df['score_depth'] * weights['depth']) +
+            (df['score_section'] * weights['section'])
         )
 
         # Sort
         df_sorted = df.sort_values(by='final_score', ascending=False)
         best_match = df_sorted.iloc[0]
-        matches = df_sorted.head(3)
+        
+        #code to send data for top 3 matches
+        matches_data = []
+        for _, row in df_sorted.head(3).iterrows():
+            matches_data.append({
+                "Designation": row['designation'],
+                "material": row['material'],
+                "type": row['type'],
+                "Depth": row['depth'],
+                "score": row['final_score'],
+                "total_cost": row['total_cost'],
+                "safety_factor": row['safety_factor'],
+                "max_deflection": row['max_deflection']
+            })
 
         #identifying high value tradeoffs where safety factor choice impacts best beam
         high_value_tradeoffs = []
@@ -226,7 +264,7 @@ class ComparatorEngine:
         return {
             "recommended": best_match['original_data'],
             "score": best_match['final_score'],
-            "matches": matches['original_data'].tolist(),
+            "matches": matches_data,
             "analysis_results": {
                 "max_deflection": best_match['max_deflection'],
                 "safety_factor": best_match['safety_factor'],
