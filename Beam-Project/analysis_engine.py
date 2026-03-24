@@ -5,6 +5,7 @@ class BeamAnalysis:
     Performs structural analysis using Singularity Functions (Macaulay's Method).
     Returns Shear, Moment, and Deflection arrays for plotting.
     """
+    
     def __init__(self, length, E, I):
         self.L = length
         self.E = E
