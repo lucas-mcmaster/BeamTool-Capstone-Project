@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from dotenv import load_dotenv
 from analysis_engine import analyze_custom_beam
 from comparator_engine import ComparatorEngine
 import os
@@ -7,6 +8,9 @@ from google.genai import types
 
 
 app = Flask(__name__)
+
+#loading environment files from .env
+load_dotenv()
 
 # Initialize Comparator with the CSV file
 # Ensure 'Beam Data - Sheet3.csv' is in the main folder
@@ -18,13 +22,13 @@ else:
     comparator = None
 
 #configuring gemini API for web testing 
-#1. setting up a list so we can rotate through free API Keys
-API_KEYS = [
-    "AIzaSyBvE4j0TGjVKSxDPCasxUYZ_KIvjkVC0aA", 
-    "AIzaSyDWPwUPpDRe-iOx5tn2T_d97noxxHTYN1Q",
-    "AIzaSyD3dHX64m9xwoV3oqSbFHRy6784cFy7bbU",
-    "AIzaSyBYHNH6oMYyXHm3SVhnykusvJK0B7w7Bac"
-]
+# 1. Loading keys from environment variable (comma-separated). Set up as list so we can rotate through free API Keys
+keys_raw = os.getenv("GEMINI_API_KEYS", "")
+API_KEYS = [k.strip() for k in keys_raw.split(",") if k.strip()]
+
+if not API_KEYS:
+    raise ValueError("No Gemini API keys found. Please define GEMINI_API_KEYS in your .env file.")
+
 
 # 2. Tracking the current key index
 current_key_idx = 0
