@@ -5,7 +5,6 @@
 ![NumPy](https://img.shields.io/badge/Math-NumPy-013243?logo=numpy)
 ![Pandas](https://img.shields.io/badge/Data-Pandas-150458?logo=pandas)
 ![Gemini API](https://img.shields.io/badge/AI-Google%20Gemini%202.5%20Flash-orange?logo=google)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 > **MIE491 Capstone Design Project | University of Toronto**  
 > *Team Members: Raghav Saxena, Mitchell Brat, Lucas McMaster, Stephanie Temovsky*  
@@ -159,4 +158,4 @@ BeamTool-Capstone-Project/
 
 ## 📜 License & Acknowledgments
 
-Developed as part of the MIE491 Capstone Design Project at the University of Toronto (Department of Mechanical & Industrial Engineering). Distributed under the MIT License.
+Developed as part of the MIE491 Capstone Design Project at the University of Toronto (Department of Mechanical & Industrial Engineering). Not for public distribution
