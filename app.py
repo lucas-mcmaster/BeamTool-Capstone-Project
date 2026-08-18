@@ -18,7 +18,7 @@ else:
     comparator = None
 
 #configuring gemini API for web testing 
-# 1. Store all your backup keys in a list
+#1. setting up a list so we can rotate through free API Keys
 API_KEYS = [
     "AIzaSyBvE4j0TGjVKSxDPCasxUYZ_KIvjkVC0aA", 
     "AIzaSyDWPwUPpDRe-iOx5tn2T_d97noxxHTYN1Q",
@@ -26,10 +26,10 @@ API_KEYS = [
     "AIzaSyBYHNH6oMYyXHm3SVhnykusvJK0B7w7Bac"
 ]
 
-# 2. Track the current key index
+# 2. Tracking the current key index
 current_key_idx = 0
 
-# 3. Initialize the client with the first key
+# 3. Initializing the client with the first key
 client = genai.Client(api_key=API_KEYS[current_key_idx])
 
 #Defining the strict System Prompt. NEED TO PLAY WITH THIS
