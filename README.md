@@ -38,7 +38,7 @@ Traditional structural engineering workflows during early-stage conceptual desig
                   |         Flask API Gateway             |
                   |             (app.py)                  |
                   +---------------------------------------+
-                     /                 |                                   /                  |                                   v                   v                 v
+                     /                 |                 \
         +-------------------+  +-------------------+  +-------------------+
         |  Analysis Engine  |  | Comparator Engine |  | AI Design Tutor   |
         | (Macaulay Solver) |  |   (MCDA / SAW)    |  | (Gemini 2.5 Flash)|
