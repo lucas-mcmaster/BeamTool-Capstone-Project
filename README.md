@@ -7,7 +7,7 @@
 ![Gemini API](https://img.shields.io/badge/AI-Google%20Gemini%202.5%20Flash-orange?logo=google)
 
 > **MIE491 Capstone Design Project | University of Toronto**  
-> *Team Members: Raghav Saxena, Mitchell Brat, Lucas McMaster, Stephanie Temovsky*  
+> *Team Members: Lucas McMaster, Stephanie Temovsky, Raghav Saxena, Mitchell Brat, *  
 > *Supervisor & Industry Advisor: Prof. Fatemeh Jazinizadeh*
 
 ---
