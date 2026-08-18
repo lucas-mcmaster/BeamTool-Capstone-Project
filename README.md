@@ -12,7 +12,7 @@
 
 ---
 
-## 📌 Executive Overview
+## Overview
 
 Traditional structural engineering workflows during early-stage conceptual design rely heavily on manual trial-and-error, conservative experience-based rules of thumb, or commercial analysis packages (such as SkyCiv or WebStructural). While these tools perform deterministic analysis once a beam section is already selected, none automatically synthesize user requirements to recommend optimal standard sections from scratch. This often results in structural overdesign, excessive material consumption, and inflated embodied carbon footprints.
 
@@ -24,7 +24,7 @@ Traditional structural engineering workflows during early-stage conceptual desig
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
                   +---------------------------------------+
@@ -53,7 +53,7 @@ Traditional structural engineering workflows during early-stage conceptual desig
 
 ---
 
-## ⚡ Core Modules & Technical Details
+## Core Modules & Technical Details
 
 ### 1. Structural Analysis Engine (`analysis_engine.py`)
 - **Macaulay’s Singularity Method**: Solves the governing Euler-Bernoulli differential equation:
@@ -83,7 +83,7 @@ Traditional structural engineering workflows during early-stage conceptual desig
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 BeamTool-Capstone-Project/
@@ -100,7 +100,7 @@ BeamTool-Capstone-Project/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.10 or higher
@@ -144,7 +144,7 @@ BeamTool-Capstone-Project/
 
 ---
 
-## 📊 Verification & Validation
+##  Verification & Validation
 
 | Parameter | Beam Validated | Theoretical (Hand Calc) | BeamTool Computed | % Error | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -152,7 +152,7 @@ BeamTool-Capstone-Project/
 | **Max Bending Moment** | AL-W180x18 (Aluminum) | 11,030.78 N·m | 11,030.78 N·m | 2.10% | **PASS** |
 | **Max Deflection** | W200x22 (Steel) | 3.372 mm | 3.370 mm | 0.07% | **PASS** |
 | **Max Deflection** | AL-W180x18 (Aluminum) | 17.156 mm | 17.210 mm | 0.32% | **PASS** |
-| **MCDA Ranking Accuracy** | CHS Sections (Marine) | Manual Ranking Match | Comparator Match | 80.0% | **PASS** |
+| **MCDA Ranking Accuracy** | CHS Sections (Marine) | Manual Ranking Match | Comparator Match | NA | **PASS** |
 
 ---
 
