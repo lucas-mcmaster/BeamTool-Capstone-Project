@@ -156,6 +156,6 @@ BeamTool-Capstone-Project/
 
 ---
 
-## 📜 License & Acknowledgments
+## License & Acknowledgments
 
 Developed as part of the MIE491 Capstone Design Project at the University of Toronto (Department of Mechanical & Industrial Engineering). Not for public distribution
