@@ -149,7 +149,7 @@ BeamTool-Capstone-Project/
 | Parameter | Beam Validated | Theoretical (Hand Calc) | BeamTool Computed | % Error | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Max Bending Moment** | W200x22 (Steel) | 11,267.67 N·m | 11,267.67 N·m | 0.00% | **PASS** |
-| **Max Bending Moment** | AL-W180x18 (Aluminum) | 11,030.78 N·m | 11,030.78 N·m | 2.10% | **PASS** |
+| **Max Bending Moment** | AL-W180x18 (Aluminum) | 11,030.78 N·m | 11,030.78 N·m | 0.00% | **PASS** |
 | **Max Deflection** | W200x22 (Steel) | 3.372 mm | 3.370 mm | 0.07% | **PASS** |
 | **Max Deflection** | AL-W180x18 (Aluminum) | 17.156 mm | 17.210 mm | 0.32% | **PASS** |
 | **MCDA Ranking Accuracy** | CHS Sections (Marine) | Manual Ranking Match | Comparator Match | NA | **PASS** |
